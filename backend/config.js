@@ -12,10 +12,4 @@ export const config = {
     // Google Cloud Project ID - read from environment variable
     GOOGLE_CLOUD_PROJECT: process.env.GOOGLE_CLOUD_PROJECT,
 
-    // Stripe Secret Key - read from environment variable
-    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
-
-    // Razorpay Keys - read from environment variables
-    RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
-    RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET
 };

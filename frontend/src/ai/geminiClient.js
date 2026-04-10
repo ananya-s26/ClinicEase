@@ -4,7 +4,7 @@ const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export async function generateAssistantReply({ prompt, system, userContext = null }) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
   
   let contextInfo = "";
   if (userContext) {

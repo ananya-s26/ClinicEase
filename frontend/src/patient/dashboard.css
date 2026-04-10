@@ -338,8 +338,10 @@ h3 {
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   margin-top: 50px;
-  margin-left: -30px;
-  width: 1615px;
+  margin-left: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .dark .medicines-section {
@@ -722,7 +724,7 @@ h3 {
   border-radius: 12px;
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-left: -30px;
+  margin-left: 0;
   height: 650px;
   display: flex;
   flex-direction: column;

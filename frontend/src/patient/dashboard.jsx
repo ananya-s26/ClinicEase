@@ -238,64 +238,6 @@ function Dashboard() {
     new Date(apt.date).toDateString() === selectedDate.toDateString()
   );
 
-  async function handlePay(appointment) {
-    try {
-      const amountInPaise = Math.max(100, Math.round((appointment.amount || 500) * 100));
-      // 1) Create order on backend
-      const orderRes = await fetch(`${apiBase}/create-razorpay-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: amountInPaise,
-          currency: 'INR',
-          receipt: `apt_${appointment.id}`,
-          notes: {
-            appointmentId: appointment.id,
-            userId: auth.currentUser?.uid || ''
-          }
-        })
-      });
-      if (!orderRes.ok) {
-        const message = await orderRes.text();
-        console.error('Order API error:', orderRes.status, message);
-        toast.error('Payment service error. Please try again.');
-        return;
-      }
-      const order = await orderRes.json();
-      if (!order?.id) {
-        toast.error('Unable to create payment order.');
-        return;
-      }
-
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID || window.__RAZORPAY_KEY_ID__,
-        amount: order.amount,
-        currency: order.currency,
-        name: 'ClinicEase',
-        description: `Payment for appointment on ${appointment.date} at ${appointment.time}`,
-        order_id: order.id,
-        handler: function (response) {
-          toast.success('Payment successful.');
-        },
-        prefill: {
-          name: userDetails?.firstName || '',
-          email: userDetails?.email || '',
-        },
-        notes: order.notes || {},
-        theme: { color: '#3399cc' }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function () {
-        toast.error('Payment failed.');
-      });
-      rzp.open();
-    } catch (e) {
-      console.error('Payment error:', e);
-      toast.error('Payment initialization failed.');
-    }
-  }
-
   // Format current month for display
   const formattedMonth = currentMonth.toLocaleDateString('default', {
     month: 'long',
@@ -451,9 +393,6 @@ function Dashboard() {
                       <div className="appointment-details">
                         <p><strong>Problem:</strong> {apt.problem}</p>
                         <p><strong>Amount:</strong> ${'{'}apt.amount || 500{'}'}</p>
-                        <button className="btn btn-secondary" onClick={() => handlePay(apt)}>
-                          Pay
-                        </button>
                       </div>
                     </div>
                   ))}

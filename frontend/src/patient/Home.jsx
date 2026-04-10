@@ -103,7 +103,7 @@ function Home() {
                 <div className="feature-card">
                   <div className="feature-icon">💳</div>
                   <h3>Easy Payments</h3>
-                  <p>Secure online payments with Razorpay integration for hassle-free transactions</p>
+                  <p>Secure online payments with fast and convenient checkout</p>
                 </div>
                 <div className="feature-card">
                   <div className="feature-icon">📱</div>
