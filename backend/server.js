@@ -18,18 +18,25 @@ dotenv.config();
 
 const app = express();
 app.use(cors());
-const port = 3000;
+app.use(express.json());
+
+// ✅ FIXED: Use Render dynamic port
+const port = process.env.PORT || 3000;
+
 const upload = multer({ dest: 'uploads/' });
 
 if (config.GOOGLE_CLOUD_PROJECT) {
   process.env.GOOGLE_CLOUD_PROJECT = config.GOOGLE_CLOUD_PROJECT;
 }
 
-const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || path.join(__dirname, 'google-cloud-key.json');
+const credentialsPath =
+  process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+  path.join(__dirname, 'google-cloud-key.json');
 
 let visionClient;
 try {
   const visionApiKey = config.GOOGLE_VISION_API_KEY;
+
   if (visionApiKey && visionApiKey !== 'your_google_vision_api_key_here') {
     visionClient = new ImageAnnotatorClient({
       apiKey: visionApiKey,
@@ -45,9 +52,6 @@ try {
   }
 } catch (error) {
   console.error('❌ Error initializing Google Cloud Vision client:', error);
-  console.log('💡 To fix this, either:');
-  console.log('   1. Set GOOGLE_VISION_API_KEY in backend/.env, or');
-  console.log('   2. Set GOOGLE_APPLICATION_CREDENTIALS to a valid service account JSON path');
   process.exit(1);
 }
 
@@ -66,7 +70,7 @@ try {
   process.exit(1);
 }
 
-app.use(express.json());
+// ---------------- HELPERS ----------------
 
 function cleanGeminiResponse(rawResponse) {
   return rawResponse.replace(/```json\s*/g, '').replace(/```/g, '').trim();
@@ -75,6 +79,7 @@ function cleanGeminiResponse(rawResponse) {
 async function extractMedicinesAndDosages(ocrText) {
   try {
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
     const prompt = `
 Extract all medicine names, dosages, timing, frequency, and instructions from the following prescription text. 
 Return the data in this exact JSON format:
@@ -91,17 +96,18 @@ Return the data in this exact JSON format:
 }
 
 Important:
-- Extract ALL medicines mentioned in the prescription
-- If timing/frequency/instructions are not specified, use "Not specified"
-- Be specific with dosages (include units like mg, ml, tablets)
-- Include any special instructions or warnings
-- Only return valid JSON, no extra text
+- Extract ALL medicines mentioned
+- If missing fields → "Not specified"
+- Only return valid JSON
 
 Prescription text: "${ocrText}"
-        `;
+`;
+
     const result = await model.generateContent(prompt);
     const response = await result.response;
+
     if (!response) throw new Error('No response from Gemini API.');
+
     return cleanGeminiResponse(response.text());
   } catch (error) {
     console.error('Gemini API Error:', error);
@@ -109,50 +115,51 @@ Prescription text: "${ocrText}"
   }
 }
 
+// ---------------- ROUTES ----------------
+
+// test route
+app.get('/test', (req, res) => {
+  res.json({ message: 'Server is running!' });
+});
+
+// upload route
 app.post('/upload', upload.single('prescription'), async (req, res) => {
   console.log('Received upload request');
+
   try {
     if (!req.file) {
       console.error('No file uploaded.');
       return res.status(400).send('No file uploaded.');
     }
+
     const imagePath = path.join(__dirname, req.file.path);
-    console.log('Image path:', imagePath);
-    try {
-      console.log('Attempting to process image with Vision API...');
-      const [result] = await visionClient.textDetection(imagePath);
-      const text = result.textAnnotations[0]?.description || 'No text detected';
-      console.log('OCR text extracted:', text);
-      if (text === 'No text detected') {
-        throw new Error('No text could be detected from the image. Please ensure the prescription is clearly visible and readable.');
-      }
-      const extractedData = await extractMedicinesAndDosages(text);
-      console.log('Extracted data from Gemini:', extractedData);
-      try {
-        const parsedData = JSON.parse(extractedData);
-        res.json(parsedData);
-      } catch (parseError) {
-        console.error('JSON Parsing Error:', parseError, extractedData);
-        res.status(500).send('Error parsing the extracted data. Please try again with a clearer image.');
-      }
-    } catch (visionError) {
-      console.error('Vision API Error:', visionError);
-      res.status(500).send(`Failed to process image: ${visionError.message}. Please ensure the image is clear and readable.`);
+
+    console.log('Processing image:', imagePath);
+
+    const [result] = await visionClient.textDetection(imagePath);
+    const text = result.textAnnotations[0]?.description || 'No text detected';
+
+    if (text === 'No text detected') {
+      throw new Error('No readable text found.');
     }
+
+    const extractedData = await extractMedicinesAndDosages(text);
+    const parsedData = JSON.parse(extractedData);
+
+    res.json(parsedData);
+
   } catch (error) {
-    console.error('Error in /upload:', error);
-    res.status(500).send('An error occurred while processing the image.');
+    console.error('Upload Error:', error);
+    res.status(500).send(error.message);
   }
 });
 
-app.get('/test', (req, res) => {
-  res.json({ message: 'Server is running!' });
-});
-
+// reminders route
 app.post('/trigger-reminders', async (req, res) => {
   try {
     const { triggerRemindersManually } = await import('./src/server/reminderScheduler.js');
     const results = await triggerRemindersManually();
+
     res.json({
       success: true,
       message: 'Reminders triggered successfully',
@@ -168,24 +175,17 @@ app.post('/trigger-reminders', async (req, res) => {
   }
 });
 
-const server = app.listen(port, () => {
-  console.log(`✅ Server running at http://localhost:${port}`);
-  console.log('✅ Press Ctrl+C to stop the server');
-  try {
-    initializeReminderScheduler('0 9 * * *');
-    console.log('📅 Appointment reminder scheduler initialized');
-  } catch (error) {
-    console.error('❌ Failed to initialize reminder scheduler:', error);
-  }
-});
+// ---------------- STATIC ----------------
 
 const distDir = path.join(__dirname, 'dist');
 const publicDir = path.join(__dirname, 'public');
 const rootUploadsDir = path.join(__dirname, '..', 'uploads');
+
 if (fs.existsSync(rootUploadsDir)) {
   app.use('/uploads', express.static(rootUploadsDir));
   console.log('✅ Root uploads directory served at /uploads');
 }
+
 if (fs.existsSync(distDir)) {
   app.use(express.static(distDir));
 } else if (fs.existsSync(publicDir)) {
@@ -194,12 +194,22 @@ if (fs.existsSync(distDir)) {
   console.log('⚠️ Frontend static files not found. Backend running in API-only mode.');
 }
 
-app.get(/.*/, (req, res) => {
-  if (process.env.NODE_ENV === 'development' || !fs.existsSync(path.join(distDir, 'index.html'))) {
-    return res.status(404).send('Backend API Server - Route not found. Access frontend at http://localhost:5173');
+// ❌ REMOVED: catch-all route (this was breaking everything)
+
+// ---------------- START SERVER ----------------
+
+const server = app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
+
+  try {
+    initializeReminderScheduler('0 9 * * *');
+    console.log('📅 Appointment reminder scheduler initialized');
+  } catch (error) {
+    console.error('❌ Failed to initialize reminder scheduler:', error);
   }
-  return res.sendFile(path.join(distDir, 'index.html'));
 });
+
+// ---------------- ERROR HANDLING ----------------
 
 server.on('error', (error) => {
   console.error('❌ Server error:', error);
@@ -212,12 +222,12 @@ process.on('uncaughtException', (error) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error('❌ Unhandled Rejection:', reason);
   process.exit(1);
 });
 
 process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down server...');
+  console.log('🛑 Shutting down server...');
   server.close(() => {
     console.log('✅ Server closed');
     process.exit(0);
