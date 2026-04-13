@@ -27,3 +27,4 @@ dist-ssr
 *.sln
 *.sw?
 uploads/
+backend/google-cloud-key.json
