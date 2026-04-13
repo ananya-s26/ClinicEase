@@ -1,0 +1,15 @@
+{
+  "name": "clinicease",
+  "version": "1.0.0",
+  "description": "ClinicEase Backend API",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "cd backend && node server.js",
+    "dev": "cd backend && node server.js",
+    "install": "cd backend && yarn install"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  }
+}
