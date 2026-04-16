@@ -23,7 +23,13 @@ app.use(express.json());
 // ✅ FIXED: Use Render dynamic port
 const port = process.env.PORT || 3000;
 
-const upload = multer({ dest: 'uploads/' });
+// Ensure uploads directory exists
+const uploadsDir = 'uploads/';
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const upload = multer({ dest: uploadsDir });
 
 if (config.GOOGLE_CLOUD_PROJECT) {
   process.env.GOOGLE_CLOUD_PROJECT = config.GOOGLE_CLOUD_PROJECT;
@@ -39,7 +45,7 @@ console.log('Environment check:', {
 
 const credentialsPath =
   process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-  path.join(__dirname, 'google-cloud-key.json');
+  path.join(__dirname, 'google-cloud-key-for-render.json');
 
 // Debug: Check if file exists
 console.log('Credentials path:', credentialsPath);
@@ -49,7 +55,14 @@ let visionClient;
 try {
   const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
 
-  if (credentialsJson) {
+  if (fs.existsSync(credentialsPath)) {
+    // Use service account file (Render secret file)
+    visionClient = new ImageAnnotatorClient({
+      keyFilename: credentialsPath,
+      projectId: process.env.GOOGLE_CLOUD_PROJECT
+    });
+    console.log('Google Cloud Vision client initialized with service account file');
+  } else if (credentialsJson) {
     // Use JSON from environment variable
     const credentials = JSON.parse(credentialsJson);
     visionClient = new ImageAnnotatorClient({
@@ -58,12 +71,7 @@ try {
     });
     console.log('Google Cloud Vision client initialized with JSON environment variable');
   } else {
-    // Use service account file
-    visionClient = new ImageAnnotatorClient({
-      keyFilename: credentialsPath,
-      projectId: process.env.GOOGLE_CLOUD_PROJECT
-    });
-    console.log('Google Cloud Vision client initialized with service account file');
+    throw new Error('No valid credentials found - neither file nor JSON available');
   }
 } catch (error) {
   console.error('❌ Error initializing Google Cloud Vision client:', error);
