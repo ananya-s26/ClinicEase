@@ -24,7 +24,7 @@ app.use(express.json());
 const port = process.env.PORT || 3000;
 
 // Ensure uploads directory exists
-const uploadsDir = 'uploads/';
+const uploadsDir = 'uploads';
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
