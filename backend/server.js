@@ -155,7 +155,7 @@ app.post('/upload', upload.single('prescription'), async (req, res) => {
       return res.status(400).send('No file uploaded.');
     }
 
-    const imagePath = path.join(__dirname, req.file.path);
+    const imagePath = req.file.path;
 
     console.log('Processing image:', imagePath);
 
