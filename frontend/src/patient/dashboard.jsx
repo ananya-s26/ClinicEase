@@ -31,7 +31,7 @@ function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [calendarDays, setCalendarDays] = useState([]);
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const apiBase = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
   const [approvedXrays, setApprovedXrays] = useState([]);
 
   const [xrayResults, setXrayResults] = useState([]);
