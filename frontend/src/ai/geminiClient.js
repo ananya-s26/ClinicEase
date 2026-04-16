@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+// Debug: Log the API key (masked for security)
+console.log('Gemini API Key loaded:', apiKey ? `${apiKey.substring(0, 10)}...${apiKey.substring(apiKey.length - 4)}` : 'NOT FOUND');
 const genAI = new GoogleGenerativeAI(apiKey);
 
 export async function generateAssistantReply({ prompt, system, userContext = null }) {
