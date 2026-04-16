@@ -41,22 +41,29 @@ const credentialsPath =
   process.env.GOOGLE_APPLICATION_CREDENTIALS ||
   path.join(__dirname, 'google-cloud-key.json');
 
+// Debug: Check if file exists
+console.log('Credentials path:', credentialsPath);
+console.log('File exists:', fs.existsSync(credentialsPath));
+
 let visionClient;
 try {
-  const visionApiKey = config.GOOGLE_VISION_API_KEY;
+  const credentialsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
 
-  if (visionApiKey && visionApiKey !== 'your_google_vision_api_key_here') {
+  if (credentialsJson) {
+    // Use JSON from environment variable
+    const credentials = JSON.parse(credentialsJson);
     visionClient = new ImageAnnotatorClient({
-      apiKey: visionApiKey,
-      projectId: process.env.GOOGLE_CLOUD_PROJECT
+      credentials: credentials,
+      projectId: credentials.project_id
     });
-    console.log('✅ Google Cloud Vision client initialized with API key');
+    console.log('Google Cloud Vision client initialized with JSON environment variable');
   } else {
+    // Use service account file
     visionClient = new ImageAnnotatorClient({
       keyFilename: credentialsPath,
       projectId: process.env.GOOGLE_CLOUD_PROJECT
     });
-    console.log('✅ Google Cloud Vision client initialized with service account');
+    console.log('Google Cloud Vision client initialized with service account file');
   }
 } catch (error) {
   console.error('❌ Error initializing Google Cloud Vision client:', error);
