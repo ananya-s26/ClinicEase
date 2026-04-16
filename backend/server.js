@@ -29,6 +29,14 @@ if (config.GOOGLE_CLOUD_PROJECT) {
   process.env.GOOGLE_CLOUD_PROJECT = config.GOOGLE_CLOUD_PROJECT;
 }
 
+// Debug: Check environment variables
+console.log('Environment check:', {
+  hasCredentialsJson: !!process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON,
+  hasCredentialsPath: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  hasApiKey: !!config.GOOGLE_VISION_API_KEY,
+  projectFromConfig: config.GOOGLE_CLOUD_PROJECT
+});
+
 const credentialsPath =
   process.env.GOOGLE_APPLICATION_CREDENTIALS ||
   path.join(__dirname, 'google-cloud-key.json');
